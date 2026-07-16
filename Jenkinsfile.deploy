@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['Development', 'UAT', 'Production'],
+            description: 'Choose deployment environment'
+        )
+    }
+
+    stages {
+
+        stage('Build') {
+            steps {
+                bat 'npm install'
+                bat 'npm run build'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+
+                    def destination = ""
+
+                    if (params.ENVIRONMENT == "Development") {
+                        destination = "C:\\Deployments\\Development"
+                    }
+                    else if (params.ENVIRONMENT == "UAT") {
+                        destination = "C:\\Deployments\\UAT"
+                    }
+                    else {
+                        destination = "C:\\Deployments\\Production"
+                    }
+
+                    bat """
+                    if not exist "${destination}" mkdir "${destination}"
+                    xcopy dist "${destination}" /E /Y /I
+                    """
+
+                    echo "Application deployed to ${destination}"
+                }
+            }
+        }
+    }
+}
