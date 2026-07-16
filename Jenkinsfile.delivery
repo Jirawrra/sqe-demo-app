@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'RELEASE_TYPE',
+            choices: ['devSnapshot', 'Version'],
+            description: 'Select release type'
+        )
+
+        string(
+            name: 'VERSION',
+            defaultValue: '1.0.0',
+            description: 'Version number (used only if Version is selected)'
+        )
+    }
+
+    stages {
+
+        stage('Install Dependencies') {
+            steps {
+                bat 'npm install'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                bat 'npm run build'
+            }
+        }
+
+        stage('Package') {
+            steps {
+                script {
+
+                    def fileName = ""
+
+                    if(params.RELEASE_TYPE == "devSnapshot") {
+                        fileName = "app-devSnapshot-build${env.BUILD_NUMBER}.zip"
+                    } else {
+                        fileName = "app-v${params.VERSION}.zip"
+                    }
+
+                    bat """
+                    powershell Compress-Archive -Path dist\\* -DestinationPath ${fileName} -Force
+                    """
+
+                    archiveArtifacts artifacts: fileName, fingerprint: true
+                }
+            }
+        }
+
+    }
+}
